@@ -1,6 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from dotenv import load_dotenv
+load_dotenv()
 import numpy as np
 import cv2
 import base64
@@ -8,12 +10,14 @@ from typing import Optional
 import io
 from PIL import Image
 import os
-from openai import OpenAI
+import anthropic
 from src.prompts import get_navigation_prompt, get_ultrasound_diagnostic_prompt
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+
+CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY")
+anthropic_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
 
 app = FastAPI(title="Image and Text Processing API")
 
@@ -48,7 +52,7 @@ def decode_image(base64_string):
 # Helper function for image identification logic
 def identify_entity_in_image(image, entity_name):
     """
-    Identify if the specified entity is present in the image using OpenAI's API.
+    Identify if the specified entity is present in the image using Claude's API.
     """
     # Convert OpenCV image to base64 for API request
     if isinstance(image, np.ndarray):
@@ -65,7 +69,7 @@ def identify_entity_in_image(image, entity_name):
     
     # Using GPT-4 Vision API for identification
     payload = {
-        "model": "gpt-4o",  # or the latest vision model
+        "model": "claude-3-sonnet-20240229",  # or the latest vision model
         "messages": [
             {
                 "role": "user",
@@ -87,7 +91,7 @@ def identify_entity_in_image(image, entity_name):
     }
 
     try:
-        response = openai_client.chat.completions.create(**payload)
+        response = anthropic_client.messages.create(**payload)
         response_text = response.choices[0].message.content
         
         # Determine if the entity was found based on the response
@@ -101,14 +105,14 @@ def identify_entity_in_image(image, entity_name):
             
     except Exception as e:
         # Log the error (in a production environment)
-        print(f"Error in OpenAI API call: {str(e)}")
+        print(f"Error in Claude API call: {str(e)}")
         # Default to False on error
         return False
 
 # Helper function for image description
 def generate_description(image):
     """
-    Generate a detailed description of the image content using OpenAI's API.
+    Generate a detailed description of the image content using Claude's API.
     """
     # Convert OpenCV image to base64 for API request
     if isinstance(image, np.ndarray):
@@ -125,7 +129,7 @@ def generate_description(image):
     
     # Using GPT-4 Vision API for image description
     payload = {
-        "model": "gpt-4o",  # or the latest vision model
+        "model": "claude-3-sonnet-20240229",  # or the latest vision model
         "messages": [
             {
                 "role": "user",
@@ -147,13 +151,13 @@ def generate_description(image):
     }
     
     try:
-        response = openai_client.chat.completions.create(**payload)
+        response = anthropic_client.completions.create(**payload)
         description = response.choices[0].message.content
         return description
             
     except Exception as e:
         # Log the error (in a production environment)
-        print(f"Error in OpenAI API call: {str(e)}")
+        print(f"Error in Claude API call: {str(e)}")
         
         # Fallback to basic description on error
         width, height = image_pil.size
@@ -271,8 +275,7 @@ async def navigate(entity_name: str = Form(...), image: UploadFile = File(...)):
             ],
             "max_tokens": 4096  # Adjust based on desired description length
         }
-        
-        response = openai_client.chat.completions.create(**payload)
+        response = anthropic_client.completions.create(**payload)
         
         return {"response": response.choices[0].message.content}
     
@@ -332,7 +335,7 @@ async def describe_image(target_organ: str = Form(...), image: UploadFile = File
             "max_tokens": 4096  # Adjust based on desired description length
         }
         
-        response = openai_client.chat.completions.create(**payload)
+        response = anthropic.chat.completions.create(**payload)
         print(response.choices[0].message.content)
         
         return {"description": response.choices[0].message.content}
