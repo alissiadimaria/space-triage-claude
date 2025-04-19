@@ -255,7 +255,7 @@ async def navigate(entity_name: str = Form(...), image: UploadFile = File(...)):
         
         # This would typically connect to a navigation service or NLP model
         payload = {
-            "model": "gpt-4o",  # or the latest vision model
+            "model": "claude-3-sonnet-20240229",  # or the latest vision model
             "messages": [
                 {
                     "role": "user",
@@ -314,7 +314,7 @@ async def describe_image(target_organ: str = Form(...), image: UploadFile = File
         
         # This would typically connect to a navigation service or NLP model
         payload = {
-            "model": "gpt-4o",  # or the latest vision model
+            "model": "claude-3-sonnet-20240229",  # or the latest vision model
             "messages": [
                 {
                     "role": "user",

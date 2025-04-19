@@ -29,3 +29,13 @@ masked_image[mask == 0] = 0  # Black out background
 # Save the masked image
 result = Image.fromarray(masked_image)
 result.save("masked_output.png")
+
+def mask_centroid(mask: np.ndarray) -> tuple[int,int]:
+    """mask: a binary 2D array where heart pixels=1. 
+    Returns (cx, cy) in pixel coords, or center if no pixels found."""
+    ys, xs = np.where(mask>0)
+    if len(xs)==0:
+        # fallback to image center
+        h, w = mask.shape
+        return w//2, h//2
+    return int(np.mean(xs)), int(np.mean(ys))

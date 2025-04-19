@@ -108,9 +108,29 @@ def process_image_flow():
             st.session_state.messages.append({"role": "assistant", "content": f"🔬 **Diagnosis Results**:\n\n{diagnosis_text}"})
             
         else:
-            st.session_state.messages.append({"role": "assistant", "content": f"❌ I couldn't clearly identify the {st.session_state.target_organ} in this image. Would you like me to help you navigate to get a better view?"})
-            st.session_state.needs_navigation = True
-            st.session_state.current_stage = "ask_navigation"
+            # st.session_state.messages.append({"role": "assistant", "content": f"❌ I couldn't clearly identify the {st.session_state.target_organ} in this image. Would you like me to help you navigate to get a better view?"})
+            # st.session_state.needs_navigation = True
+            # st.session_state.current_stage = "ask_navigation"
+
+            # 🚩 not found → go *directly* to navigation guidance
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": f"❌ I couldn't clearly identify the {st.session_state.target_organ} in this image. Here's how to reposition for a better {st.session_state.target_organ} view:"
+            })
+
+            # call your navigation API immediately
+            with st.spinner("Generating navigation guidance…"):
+                nav = call_navigate_api(image_bytes, st.session_state.target_organ)
+
+            nav_text = nav.get("response", "No navigation guidance available.")
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": f"🧭 **Navigation Guidance**:\n\n{nav_text}\n\nPlease adjust your probe accordingly and re‑upload your image when ready."
+            })
+
+            # set stage so on next upload we go back to identify
+            st.session_state.current_stage = "wait_for_new_image"
+
     
     elif st.session_state.current_stage == "navigate":
         # Call navigate API with image and entity name
